@@ -99,14 +99,11 @@ try {
         num_items: order.bump ? 2 : 1,
       },
     });
- } catch (error) {
-  return json({
-    ok: false,
-    error: 'VERIFY_PAYMENT_EXCEPTION',
-} catch (error) {
-  return json({
-    ok: false,
-    error: 'VERIFY_PAYMENT_EXCEPTION',
-  }, 500);
-}
+  } catch (error) {
+    console.error('VERIFY_PAYMENT_EXCEPTION:', error?.message || error);
+    return json({
+      ok: false,
+      error: 'Payment verification server error. Please contact support.',
+    }, 500);
+  }
 }
