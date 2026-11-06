@@ -104,6 +104,9 @@ try {
     ok: false,
     error: 'VERIFY_PAYMENT_EXCEPTION',
 } catch (error) {
+  return json({
+    ok: false,
+    error: 'VERIFY_PAYMENT_EXCEPTION',
   }, 500);
 }
 }
