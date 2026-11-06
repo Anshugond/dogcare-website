@@ -17,12 +17,18 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 
 export async function onRequest({ params, env, request, next }) {
 
-  const slug = String(params.slug || '').toLowerCase();
+  const pathname = new URL(request.url).pathname;
 
-  // Admin HTML ko dynamic landing-page route se bypass karo
-  if (slug === 'admin.html') {
+  // Admin URL: /admin is a one-way alias; /admin.html must be served
+  // as the static admin file and must never enter the landing-page lookup.
+  if (pathname === '/admin' || pathname === '/admin/') {
+    return Response.redirect(new URL('/admin.html', request.url).toString(), 302);
+  }
+  if (pathname === '/admin.html') {
     return next();
   }
+
+  const slug = String(params.slug || '').toLowerCase();
 
   if (!/^[a-z0-9-]{1,70}$/.test(slug)) {
     return new Response('Not found', { status: 404 });
