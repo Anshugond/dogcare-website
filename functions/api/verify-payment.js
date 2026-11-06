@@ -80,6 +80,12 @@ export async function onRequestPost({ request, env }) {
       },
     });
   } catch (error) {
-    return json({ ok: false, error: 'Payment verify karte waqt server error aaya. Transaction ID ke saath support se sampark karein.' }, 500);
-  }
+  console.error('VERIFY_PAYMENT_EXCEPTION:', error?.message || error);
+  console.error('VERIFY_PAYMENT_STACK:', error?.stack || 'No stack available');
+
+  return json({
+    ok: false,
+    error: 'Payment verification server error.',
+  }, 500);
+}
 }
