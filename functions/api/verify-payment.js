@@ -29,9 +29,16 @@ export async function onRequestPost({ request, env }) {
 
     // Verify the transaction independently with Easebuzz; never rely only on browser callback data.
     const isTest = String(env.EASEBUZZ_ENV || '').toLowerCase() === 'test';
-    const base = isTest ? 'https://testpay.easebuzz.in' : 'https://pay.easebuzz.in';
-    const retrieveHash = await sha512(`${env.EASEBUZZ_KEY}|${txnid}|${env.EASEBUZZ_SALT}`);
-    const retrieveResponse = await fetch(`${base}/transaction/v2/retrieve`, {
+
+const dashboardBase = isTest
+  ? 'https://testdashboard.easebuzz.in'
+  : 'https://dashboard.easebuzz.in';
+
+const retrieveHash = await sha512(
+  `${env.EASEBUZZ_KEY}|${txnid}|${env.EASEBUZZ_SALT}`
+);
+
+const retrieveResponse = await fetch(`${dashboardBase}/transaction/v2/retrieve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ key: env.EASEBUZZ_KEY, txnid, hash: retrieveHash }),
