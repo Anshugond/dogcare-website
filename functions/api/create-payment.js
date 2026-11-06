@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env }) {
     }
     const amount = (mainPrice + (bump ? bumpPrice : 0)).toFixed(2);
     const txnid = `DV${Date.now()}${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
-    const productinfo = bump ? 'Dog Care Ebook + Recipe Ebook' : 'Dog Care Ebook';
+    const productinfo = bump ? 'Dog Care Ebook and Recipe Ebook' : 'Dog Care Ebook';
     const udf1 = bump ? 'bump' : 'main';
     const site = new URL(request.url).origin;
     const params = {
