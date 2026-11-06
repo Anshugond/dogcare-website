@@ -15,18 +15,9 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   }
 });
 
-export async function onRequest({ params, env, request, next }) {
+export async function onRequest({ params, env, request }) {
 
   const pathname = new URL(request.url).pathname;
-
-  // Admin URL: /admin is a one-way alias; /admin.html must be served
-  // as the static admin file and must never enter the landing-page lookup.
-  if (pathname === '/admin' || pathname === '/admin/') {
-    return Response.redirect(new URL('/admin.html', request.url).toString(), 302);
-  }
-  if (pathname === '/admin.html') {
-    return next();
-  }
 
   const slug = String(params.slug || '').toLowerCase();
 
