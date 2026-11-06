@@ -5,6 +5,8 @@
   ],
   "exclude": [
     "/admin.html",
-    "/admin"
+    "/admin",
+    "/dogcare",
+    "/dogcare/*"
   ]
 }
