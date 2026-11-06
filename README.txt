@@ -75,3 +75,36 @@ SECURITY NOTES
 - Keep R2 Public Access disabled and do not enable the Public Development URL.
 - Do not publish the PDF direct object URLs.
 - This project does not automatically email the ebook; the successful checkout page shows secure download links.
+
+
+REUSABLE LANDING PAGE BUILDER (NEW)
+- Admin UI: https://YOUR-DOMAIN/admin.html (or /admin)
+- Admin API: /api/admin/*
+- Public product pages: /your-page-slug
+- Existing homepage `/` remains unchanged.
+- New files: admin.html, functions/admin.js, functions/[slug].js,
+  functions/api/admin/[[path]].js, functions/api/media.js,
+  migrations/0002_landing_builder.sql.
+
+ADDITIONAL CLOUDFLARE SECRETS
+- ADMIN_PASSWORD: strong unique password for the builder login.
+- ADMIN_SECRET: separate random secret (at least 32 random characters) used to sign the HttpOnly admin session cookie.
+Do not reuse Easebuzz credentials for admin authentication.
+
+ONE-TIME DATABASE UPDATE
+Run migrations/0002_landing_builder.sql in the existing `dogcare-orders` D1 Console AFTER the existing 0001 migration is already installed. This migration adds landing_pages and page-specific product metadata to orders. Run it only once.
+
+HOW TO USE
+1. Deploy the updated project to Cloudflare Pages.
+2. Add ADMIN_PASSWORD and ADMIN_SECRET as Production secrets, then redeploy.
+3. Run migration 0002 once in D1.
+4. Open /admin.html and log in.
+5. Create a page, set product title/price, upload main and optional bump PDFs, customize hero and sections, save draft or publish.
+6. The page is available at /your-slug. The checkout uses the shared create-payment and verify-payment APIs. PDF objects remain private in R2; downloads use expiring D1 tokens.
+7. Hero images uploaded through the editor are stored in R2 under images/ and served through /api/media.
+
+IMPORTANT
+- Uploads use the existing private EBOOKS R2 binding.
+- This first builder version offers a live preview plus editable sections and section reordering controls. It is not a free-form pixel-perfect drag-and-drop canvas.
+- Do not test a live payment until the current Easebuzz retrieve/verification issue has been confirmed fixed using sandbox first.
+- The GitHub ZIP does not include the current Git commit SHA, so verify its commit against the repository's latest main commit before treating it as definitively current.

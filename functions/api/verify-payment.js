@@ -29,15 +29,33 @@ export async function onRequestPost({ request, env }) {
 
     // Verify the transaction independently with Easebuzz; never rely only on browser callback data.
     const isTest = String(env.EASEBUZZ_ENV || '').toLowerCase() === 'test';
-    const base = isTest ? 'https://testpay.easebuzz.in' : 'https://pay.easebuzz.in';
-    const retrieveHash = await sha512(`${env.EASEBUZZ_KEY}|${txnid}|${env.EASEBUZZ_SALT}`);
-    const retrieveResponse = await fetch(`${base}/transaction/v2/retrieve`, {
+
+const dashboardBase = isTest
+  ? 'https://testdashboard.easebuzz.in'
+  : 'https://dashboard.easebuzz.in';
+
+const retrieveHash = await sha512(
+  `${env.EASEBUZZ_KEY}|${txnid}|${env.EASEBUZZ_SALT}`
+);
+
+const retrieveResponse = await fetch(`${dashboardBase}/transaction/v2/retrieve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ key: env.EASEBUZZ_KEY, txnid, hash: retrieveHash }),
     });
     if (!retrieveResponse.ok) return json({ ok: false, error: 'Easebuzz se transaction status verify nahi ho paya. Support se sampark karein.' }, 502);
-    const retrievePayload = await retrieveResponse.json();
+    const responseText = await retrieveResponse.text();
+
+let retrievePayload;
+
+try {
+  retrievePayload = JSON.parse(responseText);
+} catch {
+  return json({
+    ok: false,
+    error: 'Payment verification service returned an invalid response. Please contact support.'
+  }, 502);
+}
     const transaction = findTransactionRecord(retrievePayload, txnid);
     const txnStatus = String(transaction?.status || transaction?.txn_status || transaction?.transaction_status || '').toLowerCase();
     if (!transaction || txnStatus !== 'success' || amountString(transaction.amount) !== expectedAmount) {
@@ -46,8 +64,10 @@ export async function onRequestPost({ request, env }) {
 
     const now = Math.floor(Date.now() / 1000);
     const expires = now + 24 * 60 * 60;
-    const products = [{ objectKey: 'main-ebook.pdf', filename: 'main-ebook.pdf' }];
-    if (order.bump) products.push({ objectKey: 'recipe-ebook.pdf', filename: 'recipe-ebook.pdf' });
+    const mainKey = order.main_object_key || 'main-ebook.pdf';
+    const bumpKey = order.bump_object_key || 'recipe-ebook.pdf';
+    const products = [{ objectKey: mainKey, filename: mainKey.split('/').pop() || 'download.pdf' }];
+    if (order.bump) products.push({ objectKey: bumpKey, filename: bumpKey.split('/').pop() || 'bonus.pdf' });
     const insertStatements = products.map((product) => env.ORDERS_DB.prepare(`
       INSERT OR IGNORE INTO download_tokens (token, txnid, object_key, filename, expires_at, max_downloads, downloads)
       SELECT ?, ?, ?, ?, ?, 5, 0 WHERE EXISTS (SELECT 1 FROM orders WHERE txnid = ? AND status = 'paid')
@@ -66,7 +86,7 @@ export async function onRequestPost({ request, env }) {
     if (rows.length !== products.length) return json({ ok: false, error: 'Download permission generate nahi ho payi. Support se sampark karein.' }, 500);
 
     const files = rows.map((row) => ({
-      title: row.object_key === 'recipe-ebook.pdf' ? 'Download Recipe Ebook' : 'Download Complete Dog Care Ebook',
+      title: row.object_key === (order.bump_object_key || 'recipe-ebook.pdf') ? `Download ${order.bump_product_name || 'Bonus Ebook'}` : `Download ${order.product_name || 'Your Ebook'}`,
       url: `/api/download?token=${encodeURIComponent(row.token)}`,
     }));
     return json({
@@ -74,18 +94,16 @@ export async function onRequestPost({ request, env }) {
       files,
       purchase: {
         event_id: txnid, value: Number(order.amount), currency: 'INR',
-        content_name: order.bump ? 'Dog Care Ebook + Recipe Ebook' : 'Dog Care Ebook',
-        content_ids: order.bump ? ['dog-care-ebook', 'recipe-ebook'] : ['dog-care-ebook'],
+        content_name: order.bump ? `${order.product_name || 'Product'} + ${order.bump_product_name || 'Bonus'}` : (order.product_name || 'Product'),
+        content_ids: order.bump ? [order.page_slug || 'main-product', `${order.page_slug || 'main-product'}-bump`] : [order.page_slug || 'main-product'],
         num_items: order.bump ? 2 : 1,
       },
     });
-  } catch (error) {
-  console.error('VERIFY_PAYMENT_EXCEPTION:', error?.message || error);
-  console.error('VERIFY_PAYMENT_STACK:', error?.stack || 'No stack available');
-
+ } catch (error) {
   return json({
     ok: false,
-    error: 'Payment verification server error.',
+    error: 'VERIFY_PAYMENT_EXCEPTION',
+} catch (error) {
   }, 500);
 }
 }
