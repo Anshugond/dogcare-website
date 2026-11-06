@@ -1,87 +1,249 @@
+
 import { sha512, json } from './_lib.js';
 
 export async function onRequestPost({ request, env }) {
+  let txnid = null;
+
   try {
-    if (!env.ORDERS_DB || !env.EBOOKS) return json({ error: 'Order database ya ebook storage binding set nahi hai.' }, 500);
-    if (!env.EASEBUZZ_KEY || !env.EASEBUZZ_SALT) return json({ error: 'Easebuzz credentials server par set nahi hain.' }, 500);
+    if (!env.ORDERS_DB || !env.EBOOKS) {
+      return json({ error: 'Order database ya ebook storage binding set nahi hai.' }, 500);
+    }
+
+    if (!env.EASEBUZZ_KEY || !env.EASEBUZZ_SALT) {
+      return json({ error: 'Easebuzz credentials server par set nahi hain.' }, 500);
+    }
 
     const body = await request.json();
     const pageSlug = String(body.pageSlug || '').trim().toLowerCase();
-    let page = null, pageConfig = {};
+
+    let page = null;
+    let pageConfig = {};
+
     if (pageSlug) {
-      page = await env.ORDERS_DB.prepare("SELECT * FROM landing_pages WHERE slug = ? AND status = 'published'").bind(pageSlug).first();
-      if (!page) return json({ error: 'Landing page nahi mili ya publish nahi hai.' }, 404);
-      try { pageConfig = JSON.parse(page.config_json || '{}'); } catch {}
+      page = await env.ORDERS_DB
+        .prepare("SELECT * FROM landing_pages WHERE slug = ? AND status = 'published'")
+        .bind(pageSlug)
+        .first();
+
+      if (!page) {
+        return json({ error: 'Landing page nahi mili ya publish nahi hai.' }, 404);
+      }
+
+      try {
+        pageConfig = JSON.parse(page.config_json || '{}');
+      } catch {
+        return json({ error: 'Landing page configuration invalid hai.' }, 500);
+      }
     }
+
     const name = String(body.name || '').trim().slice(0, 60);
     const email = String(body.email || '').trim().toLowerCase().slice(0, 120);
     const phone = String(body.phone || '').replace(/\D/g, '');
     const bump = body.bump === true;
-    if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || !/^\d{10}$/.test(phone)) {
-      return json({ error: 'Naam, valid email aur 10 digit phone number bharein.' }, 400);
+
+    if (
+      name.length < 2 ||
+      !/^\S+@\S+\.\S+$/.test(email) ||
+      !/^\d{10}$/.test(phone)
+    ) {
+      return json({
+        error: 'Naam, valid email aur 10 digit phone number bharein.'
+      }, 400);
     }
 
-    // Confirm private R2 objects exist before accepting an order.
     const mainObjectKey = String(pageConfig.mainObjectKey || 'main-ebook.pdf');
     const bumpObjectKey = String(pageConfig.bumpObjectKey || 'recipe-ebook.pdf');
-    if (!(await env.EBOOKS.head(mainObjectKey))) return json({ error: 'Main product file storage mein nahi mili. Support se sampark karein.' }, 503);
-    if (bump && !(await env.EBOOKS.head(bumpObjectKey))) return json({ error: 'Order bump file storage mein nahi mili. Support se sampark karein.' }, 503);
-    if (bump && pageConfig.bumpEnabled === false) return json({ error: 'Is product ke liye add-on available nahi hai.' }, 400);
 
-    const mainPrice = page ? Number(pageConfig.price ?? 149) : Number(env.PRICE_MAIN || 199);
-    const bumpPrice = page ? Number(pageConfig.bumpPrice ?? 49) : Number(env.PRICE_BUMP || 49);
-    if (!Number.isFinite(mainPrice) || !Number.isFinite(bumpPrice) || mainPrice <= 0 || bumpPrice < 0) {
+    if (!(await env.EBOOKS.head(mainObjectKey))) {
+      return json({
+        error: 'Main product file storage mein nahi mili.'
+      }, 503);
+    }
+
+    if (bump && !(await env.EBOOKS.head(bumpObjectKey))) {
+      return json({
+        error: 'Order bump file storage mein nahi mili.'
+      }, 503);
+    }
+
+    if (bump && pageConfig.bumpEnabled === false) {
+      return json({ error: 'Is product ke liye add-on available nahi hai.' }, 400);
+    }
+
+    const mainPrice = page
+      ? Number(pageConfig.price ?? 149)
+      : Number(env.PRICE_MAIN || 199);
+
+    const bumpPrice = page
+      ? Number(pageConfig.bumpPrice ?? 49)
+      : Number(env.PRICE_BUMP || 49);
+
+    if (
+      !Number.isFinite(mainPrice) ||
+      !Number.isFinite(bumpPrice) ||
+      mainPrice <= 0 ||
+      bumpPrice < 0
+    ) {
       return json({ error: 'Product pricing configuration galat hai.' }, 500);
     }
+
     const amount = (mainPrice + (bump ? bumpPrice : 0)).toFixed(2);
-    const txnid = `DV${Date.now()}${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
-    const productName = String(pageConfig.productName || page?.title || 'Dog Care Ebook').slice(0, 80);
-    const bumpProductName = String(pageConfig.bumpTitle || 'Bonus Ebook').slice(0, 80);
-    const productinfo = (bump ? `${productName} and ${bumpProductName}` : productName).slice(0, 100);
+
+    txnid = `DV${Date.now()}${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+
+    const productName = String(
+      pageConfig.productName || page?.title || 'Dog Care Ebook'
+    ).slice(0, 80);
+
+    const bumpProductName = String(
+      pageConfig.bumpTitle || 'Bonus Ebook'
+    ).slice(0, 80);
+
+    const productinfo = (
+      bump ? `${productName} and ${bumpProductName}` : productName
+    ).slice(0, 100);
+
     const udf1 = bump ? 'bump' : 'main';
     const site = new URL(request.url).origin;
+
     const params = {
-      key: env.EASEBUZZ_KEY, txnid, amount, productinfo, firstname: name, email, phone,
-      udf1, udf2: '', udf3: '', udf4: '', udf5: '', udf6: '', udf7: '', udf8: '', udf9: '', udf10: '',
+      key: env.EASEBUZZ_KEY,
+      txnid,
+      amount,
+      productinfo,
+      firstname: name,
+      email,
+      phone,
+      udf1,
+      udf2: '',
+      udf3: '',
+      udf4: '',
+      udf5: '',
+      udf6: '',
+      udf7: '',
+      udf8: '',
+      udf9: '',
+      udf10: '',
       surl: pageSlug ? `${site}/${pageSlug}#paid` : `${site}/#paid`,
       furl: pageSlug ? `${site}/${pageSlug}#checkout` : `${site}/#checkout`,
     };
-    const hashSequence = [params.key, txnid, amount, productinfo, name, email,
-      udf1, '', '', '', '', '', '', '', '', '', env.EASEBUZZ_SALT].join('|');
+
+    const hashSequence = [
+      params.key,
+      txnid,
+      amount,
+      productinfo,
+      name,
+      email,
+      udf1,
+      '', '', '', '', '', '', '', '', '',
+      env.EASEBUZZ_SALT
+    ].join('|');
+
     params.hash = await sha512(hashSequence);
 
     const isTest = String(env.EASEBUZZ_ENV || '').toLowerCase() === 'test';
-    const base = isTest ? 'https://testpay.easebuzz.in' : 'https://pay.easebuzz.in';
-    await env.ORDERS_DB.prepare(`INSERT INTO orders
-      (txnid, customer_name, email, phone, bump, amount, currency, status, created_at, page_slug, product_name, main_object_key, bump_object_key, bump_product_name)
-      VALUES (?, ?, ?, ?, ?, ?, 'INR', 'initiated', ?, ?, ?, ?, ?, ?)`)
-      .bind(txnid, name, email, phone, bump ? 1 : 0, amount, Math.floor(Date.now() / 1000), pageSlug || null, productName, mainObjectKey, bumpObjectKey, bumpProductName).run();
+    const base = isTest
+      ? 'https://testpay.easebuzz.in'
+      : 'https://pay.easebuzz.in';
+
+    await env.ORDERS_DB.prepare(`
+      INSERT INTO orders
+      (txnid, customer_name, email, phone, bump, amount, currency,
+       status, created_at, page_slug, product_name, main_object_key,
+       bump_object_key, bump_product_name)
+      VALUES (?, ?, ?, ?, ?, ?, 'INR', 'initiated', ?, ?, ?, ?, ?, ?)
+    `).bind(
+      txnid,
+      name,
+      email,
+      phone,
+      bump ? 1 : 0,
+      amount,
+      Math.floor(Date.now() / 1000),
+      pageSlug || null,
+      productName,
+      mainObjectKey,
+      bumpObjectKey,
+      bumpProductName
+    ).run();
 
     const response = await fetch(`${base}/payment/initiateLink`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
       body: new URLSearchParams(params),
     });
-    const result = await response.json();
+
+    const responseText = await response.text();
+
+    let result;
+
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      console.error('EASEBUZZ_INITIATE_INVALID_RESPONSE', {
+        httpStatus: response.status,
+        responsePreview: responseText.slice(0, 300),
+      });
+
+      await env.ORDERS_DB.prepare(
+        "UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'"
+      ).bind(txnid).run();
+
+      return json({
+        error: 'Easebuzz returned an invalid response.',
+        debug: `Easebuzz HTTP ${response.status}; response was not JSON.`,
+      }, 502);
+    }
+
     if (!response.ok || Number(result.status) !== 1 || !result.data) {
-  await env.ORDERS_DB.prepare("UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'")
-    .bind(txnid).run();
+      await env.ORDERS_DB.prepare(
+        "UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'"
+      ).bind(txnid).run();
 
-  const providerError = String(
-    result.error_desc || result.message || result.error || `HTTP ${response.status}`
-  ).slice(0, 300);
+      const providerError = String(
+        result.error_desc ||
+        result.message ||
+        result.error ||
+        `HTTP ${response.status}`
+      ).slice(0, 300);
 
-  console.error('Easebuzz initiation failed:', {
-    httpStatus: response.status,
-    status: result.status,
-    error: providerError
-  });
+      console.error('EASEBUZZ_INITIATION_FAILED', {
+        httpStatus: response.status,
+        status: result.status,
+        error: providerError,
+      });
 
-  return json({ error: `Easebuzz error: ${providerError}` }, 502);
-}
+      return json({
+        error: `Easebuzz error: ${providerError}`,
+      }, 502);
+    }
 
-    return json({ access_key: result.data, key: env.EASEBUZZ_KEY, txnid, env: isTest ? 'test' : 'prod' });
+    return json({
+      access_key: result.data,
+      key: env.EASEBUZZ_KEY,
+      txnid,
+      env: isTest ? 'test' : 'prod',
+    });
+
   } catch (error) {
-    return json({ error: 'Payment start karte waqt server error aaya. Dobara try karein.' }, 500);
+    console.error('CREATE_PAYMENT_EXCEPTION:', error?.stack || error?.message || error);
+
+    if (txnid && env.ORDERS_DB) {
+      try {
+        await env.ORDERS_DB.prepare(
+          "UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'"
+        ).bind(txnid).run();
+      } catch (dbError) {
+        console.error('ORDER_STATUS_UPDATE_FAILED:', dbError?.message || dbError);
+      }
+    }
+
+    return json({
+      error: 'Payment start karte waqt server error aaya.',
+      debug: String(error?.message || error || 'Unknown server error').slice(0, 300),
+    }, 500);
   }
 }
