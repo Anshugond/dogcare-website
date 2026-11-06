@@ -51,9 +51,21 @@ export async function onRequestPost({ request, env }) {
     });
     const result = await response.json();
     if (!response.ok || Number(result.status) !== 1 || !result.data) {
-      await env.ORDERS_DB.prepare("UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'")
-        .bind(txnid).run();
-      return json({ error: 'Easebuzz payment initiate nahi kar paya. Credentials aur environment check karein.' }, 502);
+  await env.ORDERS_DB.prepare("UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'")
+    .bind(txnid).run();
+
+  const providerError = String(
+    result.error_desc || result.message || result.error || `HTTP ${response.status}`
+  ).slice(0, 300);
+
+  console.error('Easebuzz initiation failed:', {
+    httpStatus: response.status,
+    status: result.status,
+    error: providerError
+  });
+
+  return json({ error: `Easebuzz error: ${providerError}` }, 502);
+}
     }
 
     return json({ access_key: result.data, key: env.EASEBUZZ_KEY, txnid, env: isTest ? 'test' : 'prod' });
