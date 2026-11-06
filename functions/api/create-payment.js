@@ -5,20 +5,31 @@ export async function onRequestPost({ request, env }) {
   let txnid = null;
 
   try {
+    // Check required Cloudflare bindings and secrets
     if (!env.ORDERS_DB || !env.EBOOKS) {
-      return json({ error: 'Order database ya ebook storage binding set nahi hai.' }, 500);
+      return json({
+        error: 'Payment service temporarily unavailable.'
+      }, 500);
     }
 
     if (!env.EASEBUZZ_KEY || !env.EASEBUZZ_SALT) {
-      return json({ error: 'Easebuzz credentials server par set nahi hain.' }, 500);
+      console.error('EASEBUZZ_CREDENTIALS_MISSING');
+
+      return json({
+        error: 'Payment service temporarily unavailable.'
+      }, 500);
     }
 
     const body = await request.json();
-    const pageSlug = String(body.pageSlug || '').trim().toLowerCase();
+
+    const pageSlug = String(body.pageSlug || '')
+      .trim()
+      .toLowerCase();
 
     let page = null;
     let pageConfig = {};
 
+    // Load published landing page configuration
     if (pageSlug) {
       page = await env.ORDERS_DB
         .prepare("SELECT * FROM landing_pages WHERE slug = ? AND status = 'published'")
@@ -26,19 +37,35 @@ export async function onRequestPost({ request, env }) {
         .first();
 
       if (!page) {
-        return json({ error: 'Landing page nahi mili ya publish nahi hai.' }, 404);
+        return json({
+          error: 'Landing page nahi mili ya publish nahi hai.'
+        }, 404);
       }
 
       try {
         pageConfig = JSON.parse(page.config_json || '{}');
-      } catch {
-        return json({ error: 'Landing page configuration invalid hai.' }, 500);
+      } catch (error) {
+        console.error('INVALID_PAGE_CONFIG:', error?.message);
+
+        return json({
+          error: 'Product configuration invalid hai.'
+        }, 500);
       }
     }
 
-    const name = String(body.name || '').trim().slice(0, 60);
-    const email = String(body.email || '').trim().toLowerCase().slice(0, 120);
-    const phone = String(body.phone || '').replace(/\D/g, '');
+    // Validate customer details
+    const name = String(body.name || '')
+      .trim()
+      .slice(0, 60);
+
+    const email = String(body.email || '')
+      .trim()
+      .toLowerCase()
+      .slice(0, 120);
+
+    const phone = String(body.phone || '')
+      .replace(/\D/g, '');
+
     const bump = body.bump === true;
 
     if (
@@ -51,8 +78,14 @@ export async function onRequestPost({ request, env }) {
       }, 400);
     }
 
-    const mainObjectKey = String(pageConfig.mainObjectKey || 'main-ebook.pdf');
-    const bumpObjectKey = String(pageConfig.bumpObjectKey || 'recipe-ebook.pdf');
+    // Check private ebook files in R2
+    const mainObjectKey = String(
+      pageConfig.mainObjectKey || 'main-ebook.pdf'
+    );
+
+    const bumpObjectKey = String(
+      pageConfig.bumpObjectKey || 'recipe-ebook.pdf'
+    );
 
     if (!(await env.EBOOKS.head(mainObjectKey))) {
       return json({
@@ -67,9 +100,12 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (bump && pageConfig.bumpEnabled === false) {
-      return json({ error: 'Is product ke liye add-on available nahi hai.' }, 400);
+      return json({
+        error: 'Is product ke liye add-on available nahi hai.'
+      }, 400);
     }
 
+    // Calculate server-side price
     const mainPrice = page
       ? Number(pageConfig.price ?? 149)
       : Number(env.PRICE_MAIN || 199);
@@ -84,12 +120,20 @@ export async function onRequestPost({ request, env }) {
       mainPrice <= 0 ||
       bumpPrice < 0
     ) {
-      return json({ error: 'Product pricing configuration galat hai.' }, 500);
+      console.error('INVALID_PRODUCT_PRICING');
+
+      return json({
+        error: 'Product pricing configuration galat hai.'
+      }, 500);
     }
 
-    const amount = (mainPrice + (bump ? bumpPrice : 0)).toFixed(2);
+    const amount = (
+      mainPrice + (bump ? bumpPrice : 0)
+    ).toFixed(2);
 
-    txnid = `DV${Date.now()}${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    txnid = `DV${Date.now()}${crypto.randomUUID()
+      .replace(/-/g, '')
+      .slice(0, 12)}`;
 
     const productName = String(
       pageConfig.productName || page?.title || 'Dog Care Ebook'
@@ -100,12 +144,15 @@ export async function onRequestPost({ request, env }) {
     ).slice(0, 80);
 
     const productinfo = (
-      bump ? `${productName} and ${bumpProductName}` : productName
+      bump
+        ? `${productName} and ${bumpProductName}`
+        : productName
     ).slice(0, 100);
 
     const udf1 = bump ? 'bump' : 'main';
     const site = new URL(request.url).origin;
 
+    // Easebuzz payment parameters
     const params = {
       key: env.EASEBUZZ_KEY,
       txnid,
@@ -124,8 +171,12 @@ export async function onRequestPost({ request, env }) {
       udf8: '',
       udf9: '',
       udf10: '',
-      surl: pageSlug ? `${site}/${pageSlug}#paid` : `${site}/#paid`,
-      furl: pageSlug ? `${site}/${pageSlug}#checkout` : `${site}/#checkout`,
+      surl: pageSlug
+        ? `${site}/${pageSlug}#paid`
+        : `${site}/#paid`,
+      furl: pageSlug
+        ? `${site}/${pageSlug}#checkout`
+        : `${site}/#checkout`,
     };
 
     const hashSequence = [
@@ -136,22 +187,46 @@ export async function onRequestPost({ request, env }) {
       name,
       email,
       udf1,
-      '', '', '', '', '', '', '', '', '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
       env.EASEBUZZ_SALT
     ].join('|');
 
     params.hash = await sha512(hashSequence);
 
-    const isTest = String(env.EASEBUZZ_ENV || '').toLowerCase() === 'test';
+    const isTest =
+      String(env.EASEBUZZ_ENV || '').toLowerCase() === 'test';
+
     const base = isTest
       ? 'https://testpay.easebuzz.in'
       : 'https://pay.easebuzz.in';
 
+    // Save order before initiating payment
     await env.ORDERS_DB.prepare(`
       INSERT INTO orders
-      (txnid, customer_name, email, phone, bump, amount, currency,
-       status, created_at, page_slug, product_name, main_object_key,
-       bump_object_key, bump_product_name)
+      (
+        txnid,
+        customer_name,
+        email,
+        phone,
+        bump,
+        amount,
+        currency,
+        status,
+        created_at,
+        page_slug,
+        product_name,
+        main_object_key,
+        bump_object_key,
+        bump_product_name
+      )
       VALUES (?, ?, ?, ?, ?, ?, 'INR', 'initiated', ?, ?, ?, ?, ?, ?)
     `).bind(
       txnid,
@@ -168,13 +243,17 @@ export async function onRequestPost({ request, env }) {
       bumpProductName
     ).run();
 
-    const response = await fetch(`${base}/payment/initiateLink`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams(params),
-    });
+    // Request payment link from Easebuzz
+    const response = await fetch(
+      `${base}/payment/initiateLink`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(params),
+      }
+    );
 
     const responseText = await response.text();
 
@@ -182,8 +261,8 @@ export async function onRequestPost({ request, env }) {
 
     try {
       result = JSON.parse(responseText);
-    } catch {
-      console.error('EASEBUZZ_INITIATE_INVALID_RESPONSE', {
+    } catch (error) {
+      console.error('EASEBUZZ_INVALID_RESPONSE:', {
         httpStatus: response.status,
         responsePreview: responseText.slice(0, 300),
       });
@@ -193,16 +272,15 @@ export async function onRequestPost({ request, env }) {
       ).bind(txnid).run();
 
       return json({
-        error: 'Easebuzz returned an invalid response.',
-        debug: `Easebuzz HTTP ${response.status}; response was not JSON.`,
+        error: 'Payment gateway temporarily unavailable. Please try again.'
       }, 502);
     }
 
-    if (!response.ok || Number(result.status) !== 1 || !result.data) {
-      await env.ORDERS_DB.prepare(
-        "UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'"
-      ).bind(txnid).run();
-
+    if (
+      !response.ok ||
+      Number(result.status) !== 1 ||
+      !result.data
+    ) {
       const providerError = String(
         result.error_desc ||
         result.message ||
@@ -210,17 +288,22 @@ export async function onRequestPost({ request, env }) {
         `HTTP ${response.status}`
       ).slice(0, 300);
 
-      console.error('EASEBUZZ_INITIATION_FAILED', {
+      console.error('EASEBUZZ_INITIATION_FAILED:', {
         httpStatus: response.status,
         status: result.status,
         error: providerError,
       });
 
+      await env.ORDERS_DB.prepare(
+        "UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'"
+      ).bind(txnid).run();
+
       return json({
-        error: `Easebuzz error: ${providerError}`,
+        error: 'Payment gateway payment initiate nahi kar paya. Please try again.'
       }, 502);
     }
 
+    // Return payment access key to checkout
     return json({
       access_key: result.data,
       key: env.EASEBUZZ_KEY,
@@ -229,7 +312,10 @@ export async function onRequestPost({ request, env }) {
     });
 
   } catch (error) {
-    console.error('CREATE_PAYMENT_EXCEPTION:', error?.stack || error?.message || error);
+    console.error(
+      'CREATE_PAYMENT_EXCEPTION:',
+      error?.stack || error?.message || error
+    );
 
     if (txnid && env.ORDERS_DB) {
       try {
@@ -237,13 +323,15 @@ export async function onRequestPost({ request, env }) {
           "UPDATE orders SET status = 'initiation_failed' WHERE txnid = ? AND status = 'initiated'"
         ).bind(txnid).run();
       } catch (dbError) {
-        console.error('ORDER_STATUS_UPDATE_FAILED:', dbError?.message || dbError);
+        console.error(
+          'ORDER_STATUS_UPDATE_FAILED:',
+          dbError?.message || dbError
+        );
       }
     }
 
     return json({
-      error: 'Payment start karte waqt server error aaya.',
-      debug: String(error?.message || error || 'Unknown server error').slice(0, 300),
+      error: 'Payment start karte waqt server error aaya. Dobara try karein.'
     }, 500);
   }
 }
