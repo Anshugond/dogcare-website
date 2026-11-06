@@ -66,7 +66,6 @@ export async function onRequestPost({ request, env }) {
 
   return json({ error: `Easebuzz error: ${providerError}` }, 502);
 }
-    }
 
     return json({ access_key: result.data, key: env.EASEBUZZ_KEY, txnid, env: isTest ? 'test' : 'prod' });
   } catch (error) {
