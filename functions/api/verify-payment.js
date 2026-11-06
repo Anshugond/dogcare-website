@@ -79,13 +79,11 @@ export async function onRequestPost({ request, env }) {
         num_items: order.bump ? 2 : 1,
       },
     });
-  } catch (error) {
-  console.error('VERIFY_PAYMENT_EXCEPTION:', error?.message || error);
-  console.error('VERIFY_PAYMENT_STACK:', error?.stack || 'No stack available');
-
+ } catch (error) {
   return json({
     ok: false,
-    error: 'Payment verification server error.',
+    error: 'VERIFY_PAYMENT_EXCEPTION',
+    debug: String(error?.message || error).slice(0, 300),
   }, 500);
 }
 }
