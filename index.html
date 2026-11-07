@@ -182,13 +182,26 @@ body.ck #waSupport svg{width:21px;height:21px}
 }
 @media(max-width:420px){
   #checkout .ckr{padding:16px 10px 20px}
-  #checkout .bump{margin:16px 0;padding:16px 12px 14px!important}
   #checkout .mock{padding:16px 14px}
   #checkout .row{font-size:.9rem}
   #checkout .row.tot{font-size:1.1rem}
   body.ck #waSupport span{display:none}
 }
-
+/* Final checkout polish: compact bump and centered responsive payment CTA */
+#checkout #payBtn{left:75%;right:auto;transform:translateX(-50%);width:min(320px,38vw);max-width:320px;min-height:48px;padding:11px 18px;font-size:.96rem;border-radius:10px;box-shadow:0 4px 14px rgba(20,20,30,.16)}
+#checkout .compact-bump{padding:10px 12px!important;margin:12px 0!important;border:1px solid #edaa39!important;border-radius:12px!important;box-shadow:none!important;background:#fff7df!important}
+#checkout .compact-bump-info{display:flex;align-items:center;gap:9px;min-width:0}
+#checkout .compact-bump-icon{font-size:1.45rem;line-height:1}
+#checkout .compact-bump-title{font-size:.88rem;font-weight:700;color:#8f1426;flex:1;min-width:0}
+#checkout .compact-bump-price{font-size:.88rem;color:#8f1426;white-space:nowrap}
+#checkout .compact-bump .pick{margin-top:8px!important;padding:7px 10px!important;border:1px solid #e6a13b!important;border-radius:8px!important;box-shadow:none!important;font-size:.86rem!important;color:#713b10!important}
+#checkout .compact-bump .pick input{width:19px!important;height:19px!important;min-width:19px!important}
+#checkout .compact-bump .pick span{display:block!important}
+@media(max-width:820px){
+  #checkout #payBtn{left:0;right:0;transform:none;width:100%;max-width:none;bottom:0;min-height:54px;border-radius:0;padding:13px 18px calc(13px + env(safe-area-inset-bottom));font-size:1rem}
+  body.ck #waSupport{right:12px;bottom:68px;z-index:1001}
+}
+@media(min-width:821px){body.ck #waSupport{right:20px;bottom:78px;z-index:1001}}
 </style>
 <!-- Meta Pixel Code: single installation -->
 <script>
@@ -307,17 +320,10 @@ fbq('track','PageView');
 <label class="f" for="nm">Name</label><input class="t" id="nm" name="name" required autocomplete="name">
 <label class="f" for="em">Email</label><input class="t" id="em" name="email" type="email" required autocomplete="email">
 <label class="f" for="ph">Phone / WhatsApp</label><input class="t" id="ph" name="phone" type="tel" required pattern="[0-9]{10}" maxlength="10" inputmode="numeric" placeholder="10 digit number" autocomplete="tel">
-<div class="bump" id="bumpBox"><span class="ribbon">✨ CHECKOUT SPECIAL ADD-ON</span>
-<div class="bump-headline"><span class="bump-kicker">MEALTIME KO AUR EASY BANAYEIN</span><span class="bump-price">ADD ONLY ₹<span class="B">49</span></span></div>
-<div class="bh"><div class="bt">🍲</div><div><h4>60 Food Recipes eBook — 30 Veg + 30 Non-Veg</h4>
-<p style="font-size:.88rem">Apne pet ke meals ke liye easy-to-follow recipe ideas paayein. Ingredients, quantities aur banane ka step-by-step guide ek hi eBook mein.</p></div></div>
-<div class="bump-benefits"><span>✓ 60 recipe ideas</span><span>✓ Simple instructions</span><span>✓ Veg &amp; Non-Veg options</span></div>
-<details><summary>Is eBook ke andar aapko kya milega?</summary><ul>
-<li><b>60 Recipes:</b> 30 Veg aur 30 Non-Veg options.</li>
-<li><b>Step-by-Step Guide:</b> Ingredients, quantity aur preparation instructions.</li>
-<li><b>Easy to Follow:</b> Recipes ko samajhne aur ghar par prepare karne ke liye simple guidance.</li></ul></details>
-<label class="pick"><input type="checkbox" id="bump"><span><strong>Haan! Recipe eBook bhi add karein</strong><small>Sirf ₹<span class="B">49</span> extra — optional add-on</small></span></label>
-<div class="bump-note">☝️ Add karne ke liye checkbox select karein. Aap ise skip bhi kar sakte hain.</div></div>
+<div class="bump compact-bump" id="bumpBox">
+<div class="compact-bump-info"><span class="compact-bump-icon">🍲</span><span class="compact-bump-title">60 Food Recipes eBook</span><strong class="compact-bump-price">₹<span class="B">49</span></strong></div>
+<label class="pick"><input type="checkbox" id="bump"><span><strong>Avail the offer</strong></span></label>
+</div>
 <div class="err" id="err"></div>
 <button class="btn big" id="payBtn" type="submit" style="width:100%">Pay ₹149</button>
 <p class="sec">🔒 100% secure &middot; ⚡ Payment ke baad instant download</p>
