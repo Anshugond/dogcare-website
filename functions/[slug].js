@@ -19,6 +19,12 @@ export async function onRequest({ params, env, request, next }) {
 
   const slug = String(params.slug || '').toLowerCase();
 
+  // Serve the existing main Dog Care landing page at /dogcare as well.
+  // Keep the root URL unchanged and leave all API/payment routes untouched.
+  if (slug === 'dogcare') {
+    return env.ASSETS.fetch(new URL('/', request.url));
+  }
+
   // Admin HTML ko dynamic landing-page route se bypass karo
   if (slug === 'admin.html') {
     return next();
