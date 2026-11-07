@@ -504,8 +504,42 @@ $('orderForm').addEventListener('submit',function(e){
 #waSupport{position:fixed;right:20px;bottom:20px;z-index:99999;display:flex;align-items:center;gap:9px;background:#25D366;color:#fff;padding:12px 17px;border-radius:50px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
 #waSupport svg{width:25px;height:25px;fill:#fff;flex:none}
 @media(max-width:600px){#waSupport{right:14px;bottom:14px;padding:12px}#waSupport span{display:none}}
+
+/* V7: Mobile-only fixed checkout payment bar; hide it while the checkout footer is visible. */
+@media (max-width:820px){
+  body.ck #checkout #payBtn{
+    position:fixed!important; left:10px!important; right:10px!important; bottom:calc(10px + env(safe-area-inset-bottom))!important;
+    transform:none!important; width:calc(100% - 20px)!important; max-width:none!important; min-height:54px!important;
+    margin:0!important; border-radius:12px!important; z-index:1000!important;
+    padding:13px 18px!important; box-shadow:0 5px 18px rgba(0,0,0,.22)!important;
+  }
+  body.ck #checkout .ckw{padding-bottom:88px!important}
+  body.ck #checkout .page-contact-footer{padding-bottom:22px}
+  body.ck #waSupport{right:12px!important;bottom:76px!important;z-index:1002!important;max-width:calc(100vw - 24px);padding:9px 12px!important;font-size:11px!important}
+  body.ck #waSupport span{display:inline!important;white-space:nowrap}
+  body.ck #checkout #payBtn.pay-footer-hidden{display:none!important}
+}
+@media (min-width:821px){body.ck #waSupport span{display:inline!important}}
 </style>
 <a id="waSupport" href="https://wa.me/918471084721?text=Hello%2C%20mujhe%20Dog%20Care%20Ebook%20ke%20regarding%20support%20chahiye." target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Support">
-<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 .5A15.4 15.4 0 0 0 2.8 23.8L.5 31.5l7.9-2.1A15.5 15.5 0 1 0 16 .5zm0 28.2a12.7 12.7 0 0 1-6.5-1.8l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.8 12.8 0 1 1 16 28.7zm7-9.6c-.4-.2-2.2-1.1-2.6-1.2-.4-.1-.6-.2-.9.2-.3.4-1 1.2-1.2 1.4-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3-1.9-1.1-1-1.9-2.2-2.1-2.6-.2-.4 0-.6.2-.8l.6-.7c.2-.2.3-.4.4-.7.1-.2 0-.5 0-.7-.1-.2-.9-2.1-1.3-2.9-.3-.7-.6-.6-.9-.6h-.8c-.3 0-.7.1-1.1.5-.4.4-1.4 1.3-1.4 3.2s1.5 3.7 1.7 4c.2.3 2.9 4.4 7 6.2 1 .4 1.8.7 2.4.9 1 .3 1.9.3 2.6.2.8-.1 2.2-.9 2.5-1.8.3-.9.3-1.7.2-1.8-.1-.2-.4-.3-.8-.5z"/></svg><span>WhatsApp Support</span></a>
+<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 .5A15.4 15.4 0 0 0 2.8 23.8L.5 31.5l7.9-2.1A15.5 15.5 0 1 0 16 .5zm0 28.2a12.7 12.7 0 0 1-6.5-1.8l-.5-.3-4.7 1.2 1.3-4.6-.3-.5A12.8 12.8 0 1 1 16 28.7zm7-9.6c-.4-.2-2.2-1.1-2.6-1.2-.4-.1-.6-.2-.9.2-.3.4-1 1.2-1.2 1.4-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3-1.9-1.1-1-1.9-2.2-2.1-2.6-.2-.4 0-.6.2-.8l.6-.7c.2-.2.3-.4.4-.7.1-.2 0-.5 0-.7-.1-.2-.9-2.1-1.3-2.9-.3-.7-.6-.6-.9-.6h-.8c-.3 0-.7.1-1.1.5-.4.4-1.4 1.3-1.4 3.2s1.5 3.7 1.7 4c.2.3 2.9 4.4 7 6.2 1 .4 1.8.7 2.4.9 1 .3 1.9.3 2.6.2.8-.1 2.2-.9 2.5-1.8.3-.9.3-1.7.2-1.8-.1-.2-.4-.3-.8-.5z"/></svg><span>WhatsApp: +91 84710 84721</span></a>
+
+<script>
+(function(){
+  function setupMobileCheckoutBar(){
+    var btn=document.getElementById('payBtn');
+    var footer=document.querySelector('#checkout .page-contact-footer');
+    if(!btn||!footer||!('IntersectionObserver' in window)) return;
+    var observer=new IntersectionObserver(function(entries){
+      var visible=entries.some(function(entry){return entry.isIntersecting;});
+      if(window.matchMedia('(max-width: 820px)').matches){btn.classList.toggle('pay-footer-hidden',visible && document.body.classList.contains('ck'));}
+      else{btn.classList.remove('pay-footer-hidden');}
+    },{root:null,threshold:0.01});
+    observer.observe(footer);
+    window.addEventListener('resize',function(){if(!window.matchMedia('(max-width: 820px)').matches)btn.classList.remove('pay-footer-hidden');});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupMobileCheckoutBar);else setupMobileCheckoutBar();
+})();
+</script>
 </body>
 </html>
