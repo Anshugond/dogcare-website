@@ -272,6 +272,21 @@ body.ck #waSupport{right:18px!important;bottom:82px!important;z-index:1002!impor
   #checkout .reference-bump .rb-copy p{font-size:.74rem}
 }
 
+/* Final fix: keep payment CTA sticky only while the checkout form is in view. It stops at the form boundary, so the footer remains unobstructed. */
+#checkout #payBtn{
+  position:sticky!important; bottom:12px!important; left:auto!important; right:auto!important;
+  transform:none!important; display:block!important; width:100%!important; max-width:100%!important;
+  min-height:52px!important; margin:14px 0 0!important; border-radius:10px!important;
+  z-index:20!important; box-shadow:0 4px 16px rgba(20,20,30,.18)!important;
+}
+#checkout .ckw{padding-bottom:24px!important}
+#checkout .ckr form{position:relative; padding-bottom:2px}
+@media(max-width:820px){
+  #checkout #payBtn{position:sticky!important;bottom:0!important;width:100%!important;max-width:100%!important;min-height:56px!important;border-radius:10px!important;padding:13px 18px!important;margin-top:14px!important}
+  #checkout .ckw{padding-bottom:24px!important}
+  body.ck #waSupport{right:12px!important;bottom:14px!important;z-index:1002!important}
+}
+/* Phone number is used only in the WhatsApp destination; no Call Us links or visible number. */
 </style>
 <!-- Meta Pixel Code: single installation -->
 <script>
@@ -366,7 +381,7 @@ fbq('track','PageView');
 <a class="btn big" href="#checkout">Buy Ebook: Sirf ₹<span class="P">149</span></a>
 <p style="margin-top:14px;font-size:.9rem">⚡ Payment ke baad instant download</p>
 </div></section>
-<footer><div class="wrap">Yeh ebook sirf educational hai aur licensed vet ki salah ka vikalp nahi hai. &copy; Complete Dog Care eBook<br>Managed by <b>The Digital View</b> &middot; anshugor.com<div class="footer-contact">Call Us: <a href="tel:+918471084721">+91 84710 84721</a> &nbsp;|&nbsp; WhatsApp: <a href="https://wa.me/918471084721" target="_blank" rel="noopener">+91 84710 84721</a></div></div></footer>
+<footer><div class="wrap">Yeh ebook sirf educational hai aur licensed vet ki salah ka vikalp nahi hai. &copy; Complete Dog Care eBook<br>Managed by <b>The Digital View</b> &middot; anshugor.com<div class="footer-contact">WhatsApp: <a href="https://wa.me/918471084721" target="_blank" rel="noopener">WhatsApp Support</a></div></div></footer>
 </main>
 
 <main id="checkout"><div class="ckw">
@@ -404,7 +419,7 @@ fbq('track','PageView');
 <div class="err" id="err"></div>
 <button class="btn big" id="payBtn" type="submit" style="width:100%">Pay ₹149</button>
 <p class="sec">🔒 100% secure &middot; ⚡ Payment ke baad instant download</p>
-</form></div></section></div><footer class="page-contact-footer"><div class="wrap"><b>Contact Support</b><br>Call Us: <a href="tel:+918471084721">+91 84710 84721</a><br>WhatsApp: <a href="https://wa.me/918471084721?text=Hello%2C%20mujhe%20website%20ke%20regarding%20support%20chahiye." target="_blank" rel="noopener noreferrer">+91 84710 84721</a></div></footer></main>
+</form></div></section></div><footer class="page-contact-footer"><div class="wrap"><b>Contact Support</b><br><a href="https://wa.me/918471084721?text=Hello%2C%20mujhe%20website%20ke%20regarding%20support%20chahiye." target="_blank" rel="noopener noreferrer">WhatsApp Support</a></div></footer></main>
 
 <main id="paid" class="paid"><div class="wrap" style="max-width:520px">
 <div style="font-size:4rem">🎉</div><h2>Payment Successful!</h2>
@@ -415,8 +430,8 @@ fbq('track','PageView');
 <h3 style="color:#174d35;margin-bottom:7px">Download mein pareshani hai?</h3>
 <p style="font-size:.88rem;color:#405b4b;margin-bottom:14px">Payment successful hai lekin PDF nahi mili ya download/open nahi ho rahi? Humse contact karein.</p>
 <a href="https://wa.me/918471084721?text=Hello%2C%20mera%20payment%20successful%20hai%20lekin%20ebook%20download%20mein%20problem%20aa%20rahi%20hai." target="_blank" rel="noopener" style="display:block;background:#25D366;color:white;padding:12px;border-radius:9px;text-decoration:none;font-weight:700;margin-bottom:9px">🟢 WhatsApp Support</a>
-<a href="tel:+918471084721" style="display:block;background:#174d35;color:white;padding:12px;border-radius:9px;text-decoration:none;font-weight:700">☎ Call Us: +91 84710 84721</a>
-</div></div><footer class="page-contact-footer"><div class="wrap"><b>Contact Support</b><br>Call Us: <a href="tel:+918471084721">+91 84710 84721</a><br>WhatsApp: <a href="https://wa.me/918471084721?text=Hello%2C%20mujhe%20website%20ke%20regarding%20support%20chahiye." target="_blank" rel="noopener noreferrer">+91 84710 84721</a></div></footer></main>
+
+</div></div><footer class="page-contact-footer"><div class="wrap"><b>Contact Support</b><br><a href="https://wa.me/918471084721?text=Hello%2C%20mujhe%20website%20ke%20regarding%20support%20chahiye." target="_blank" rel="noopener noreferrer">WhatsApp Support</a></div></footer></main>
 
 <script>
 /* ===== CONFIG: yahan se poori site customise karein ===== */
