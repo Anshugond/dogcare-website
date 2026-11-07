@@ -202,6 +202,76 @@ body.ck #waSupport svg{width:21px;height:21px}
   body.ck #waSupport{right:12px;bottom:68px;z-index:1001}
 }
 @media(min-width:821px){body.ck #waSupport{right:20px;bottom:78px;z-index:1001}}
+
+/* Reference-inspired checkout refinement */
+#checkout .reference-bump{
+  padding:18px 16px 14px!important;
+  margin:18px 0 16px!important;
+  border:1.5px dashed #f59e0b!important;
+  border-radius:14px!important;
+  background:linear-gradient(145deg,#fff8dc,#fff0b8)!important;
+  box-shadow:none!important;
+  cursor:default;
+}
+#checkout .reference-bump .rb-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 12px;
+}
+#checkout .reference-bump .rb-ribbon{
+  display:inline-block;background:#b51232;color:#fff;border-radius:20px;
+  padding:4px 10px;font-size:.68rem;font-weight:800;letter-spacing:.02em;
+}
+#checkout .reference-bump .rb-price{font-weight:800;color:#9b1830;white-space:nowrap;font-size:1rem}
+#checkout .reference-bump .rb-price del{font-size:.78rem;color:#7b7280;font-weight:500;margin-left:3px}
+#checkout .reference-bump .rb-content{display:flex;align-items:center;gap:13px}
+#checkout .reference-bump .rb-cover{
+  width:82px;min-width:82px;min-height:100px;border:1px solid #ecd79b;
+  border-radius:9px;background:linear-gradient(150deg,#fff,#f4e3b3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:7px;color:#7c3e13;box-shadow:0 2px 7px rgba(90,60,20,.10)
+}
+#checkout .reference-bump .rb-cover span{font-size:1.65rem;line-height:1.2}
+#checkout .reference-bump .rb-cover b{font-size:.65rem;line-height:1.2;margin-top:4px}
+#checkout .reference-bump .rb-cover small{font-size:.43rem;line-height:1.2;margin-top:4px}
+#checkout .reference-bump .rb-copy{min-width:0}
+#checkout .reference-bump .rb-copy h4{font-size:.96rem;line-height:1.35;margin:0 0 5px;color:#991b32}
+#checkout .reference-bump .rb-copy p{font-size:.82rem;line-height:1.45;margin:0;color:#493b2b}
+#checkout .reference-bump .pick{
+  display:flex;align-items:center;gap:10px;margin:12px 0 0!important;
+  padding:10px 12px!important;border:1.5px solid #e5a32c!important;
+  border-radius:9px!important;background:#fff!important;color:#273444!important;
+  font-size:.9rem!important;width:100%;box-shadow:none!important
+}
+#checkout .reference-bump .pick input{width:21px!important;height:21px!important;min-width:21px!important;margin:0!important}
+#checkout #payBtn{
+  position:fixed!important;z-index:1000!important;bottom:14px!important;
+  left:calc(75% - 235px)!important;right:auto!important;transform:none!important;
+  width:min(470px,calc(50vw - 48px))!important;max-width:470px!important;
+  min-height:50px!important;padding:13px 22px!important;border-radius:10px!important;
+  margin:0!important;box-shadow:0 4px 16px rgba(20,20,30,.18)!important;
+}
+#checkout .ckw{padding-bottom:88px!important}
+body.ck #waSupport{right:18px!important;bottom:82px!important;z-index:1002!important}
+@media(max-width:820px){
+  #checkout .reference-bump{padding:15px 13px 12px!important;margin:15px 0!important}
+  #checkout .reference-bump .rb-cover{width:72px;min-width:72px;min-height:90px}
+  #checkout .reference-bump .rb-copy h4{font-size:.9rem}
+  #checkout .reference-bump .rb-copy p{font-size:.78rem}
+  #checkout #payBtn{
+    left:0!important;right:0!important;bottom:0!important;transform:none!important;
+    width:100%!important;max-width:none!important;min-height:58px!important;
+    border-radius:0!important;padding:13px 18px calc(13px + env(safe-area-inset-bottom))!important;
+  }
+  #checkout .ckw{padding-bottom:112px!important}
+  body.ck #waSupport{right:12px!important;bottom:70px!important;z-index:1002!important}
+}
+@media(max-width:380px){
+  #checkout .reference-bump .rb-content{gap:9px}
+  #checkout .reference-bump .rb-cover{width:64px;min-width:64px;min-height:84px}
+  #checkout .reference-bump .rb-copy h4{font-size:.84rem}
+  #checkout .reference-bump .rb-copy p{font-size:.74rem}
+}
+
 </style>
 <!-- Meta Pixel Code: single installation -->
 <script>
@@ -320,9 +390,16 @@ fbq('track','PageView');
 <label class="f" for="nm">Name</label><input class="t" id="nm" name="name" required autocomplete="name">
 <label class="f" for="em">Email</label><input class="t" id="em" name="email" type="email" required autocomplete="email">
 <label class="f" for="ph">Phone / WhatsApp</label><input class="t" id="ph" name="phone" type="tel" required pattern="[0-9]{10}" maxlength="10" inputmode="numeric" placeholder="10 digit number" autocomplete="tel">
-<div class="bump compact-bump" id="bumpBox">
-<div class="compact-bump-info"><span class="compact-bump-icon">🍲</span><span class="compact-bump-title">60 Food Recipes eBook</span><strong class="compact-bump-price">₹<span class="B">49</span></strong></div>
-<label class="pick"><input type="checkbox" id="bump"><span><strong>Avail the offer</strong></span></label>
+<div class="bump reference-bump" id="bumpBox">
+  <div class="rb-head"><span class="rb-ribbon">SPECIAL ONE-TIME OFFER</span><span class="rb-price">₹<span class="B">49</span> <del>₹199</del></span></div>
+  <div class="rb-content">
+    <div class="rb-cover" aria-hidden="true"><span>🍲</span><b>60 FOOD<br>RECIPES</b><small>30 VEG + 30 NON-VEG</small></div>
+    <div class="rb-copy">
+      <h4>60 Food Recipes eBook – 30 Veg + 30 Non-Veg</h4>
+      <p>Apne pet ke liye easy-to-follow meal aur recipe ideas paayein. Ingredients aur banane ka simple guide.</p>
+    </div>
+  </div>
+  <label class="pick"><input type="checkbox" id="bump"><span><strong>Avail the offer</strong></span></label>
 </div>
 <div class="err" id="err"></div>
 <button class="btn big" id="payBtn" type="submit" style="width:100%">Pay ₹149</button>
