@@ -225,9 +225,14 @@ export async function onRequestPost({ request, env }) {
         product_name,
         main_object_key,
         bump_object_key,
-        bump_product_name
+        bump_product_name,
+        meta_pixel_id,
+        meta_fbp,
+        meta_fbc,
+        client_ip_address,
+        client_user_agent
       )
-      VALUES (?, ?, ?, ?, ?, ?, 'INR', 'initiated', ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 'INR', 'initiated', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       txnid,
       name,
@@ -240,7 +245,12 @@ export async function onRequestPost({ request, env }) {
       productName,
       mainObjectKey,
       bumpObjectKey,
-      bumpProductName
+      bumpProductName,
+      String(pageConfig.pixelId || env.META_PIXEL_ID || '').trim() || null,
+      String(request.headers.get('cookie') || '').match(/(?:^|;\s*)_fbp=([^;]+)/)?.[1] || null,
+      String(request.headers.get('cookie') || '').match(/(?:^|;\s*)_fbc=([^;]+)/)?.[1] || null,
+      request.headers.get('CF-Connecting-IP') || '',
+      request.headers.get('User-Agent') || ''
     ).run();
 
     // Request payment link from Easebuzz

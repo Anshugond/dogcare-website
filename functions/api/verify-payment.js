@@ -1,5 +1,5 @@
 
-import { sha512, json, timingSafeEqual, amountString, callbackHashFields, findTransactionRecord, makeToken } from './_lib.js';
+import { sha512, json, timingSafeEqual, amountString, callbackHashFields, findTransactionRecord, makeToken, sendMetaPurchase } from './_lib.js';
 
 export async function onRequestPost({ request, env }) {
   try {
@@ -97,6 +97,39 @@ export async function onRequestPost({ request, env }) {
 
     if (finalOrder?.status !== 'paid') {
       return json({ ok: false, error: 'Order paid mark nahi ho paya.' }, 409);
+    }
+
+    // Send Purchase server-side only after Easebuzz independently confirms payment.
+    // The txnid matches the browser Pixel eventID, allowing Meta to deduplicate.
+    const pixelId = String(order.meta_pixel_id || env.META_PIXEL_ID || '').trim();
+    const accessToken = String(env.META_CAPI_ACCESS_TOKEN || '').trim();
+    if (pixelId && accessToken) {
+      const claimTime = Math.floor(Date.now() / 1000);
+      const claim = await env.ORDERS_DB.prepare(`
+        UPDATE orders SET capi_claimed_at = ?
+        WHERE txnid = ? AND capi_sent_at IS NULL
+          AND (capi_claimed_at IS NULL OR capi_claimed_at < ?)
+      `).bind(claimTime, txnid, claimTime - 120).run();
+      if (Number(claim.meta?.changes || 0) > 0) {
+        try {
+          await sendMetaPurchase({
+            pixelId, accessToken, order, request,
+            eventTime: Number(order.paid_at || claimTime),
+            testEventCode: env.META_TEST_EVENT_CODE || '',
+            apiVersion: env.META_GRAPH_API_VERSION || 'v25.0',
+          });
+          await env.ORDERS_DB.prepare(`
+            UPDATE orders SET capi_sent_at = ?, capi_claimed_at = NULL WHERE txnid = ?
+          `).bind(Math.floor(Date.now() / 1000), txnid).run();
+        } catch (capiError) {
+          await env.ORDERS_DB.prepare(`
+            UPDATE orders SET capi_claimed_at = NULL WHERE txnid = ? AND capi_sent_at IS NULL
+          `).bind(txnid).run();
+          console.error('META_CAPI_PURCHASE_FAILED:', capiError?.message || capiError);
+        }
+      }
+    } else {
+      console.warn('META_CAPI_NOT_CONFIGURED: Set META_CAPI_ACCESS_TOKEN and a pixel ID.');
     }
 
     const tokenRows = await env.ORDERS_DB.prepare('SELECT object_key, filename, token FROM download_tokens WHERE txnid = ? ORDER BY object_key').bind(txnid).all();

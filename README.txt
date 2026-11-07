@@ -108,3 +108,19 @@ IMPORTANT
 - This first builder version offers a live preview plus editable sections and section reordering controls. It is not a free-form pixel-perfect drag-and-drop canvas.
 - Do not test a live payment until the current Easebuzz retrieve/verification issue has been confirmed fixed using sandbox first.
 - The GitHub ZIP does not include the current Git commit SHA, so verify its commit against the repository's latest main commit before treating it as definitively current.
+
+
+META CONVERSIONS API (SERVER-SIDE PURCHASE)
+-------------------------------------------
+The payment verification endpoint sends a server-side Purchase event after
+Easebuzz independently confirms the transaction and the order is marked paid.
+
+Set these Cloudflare Pages secrets/variables:
+- META_CAPI_ACCESS_TOKEN = Conversions API access token for the same Meta dataset/pixel.
+- META_PIXEL_ID = Meta Pixel/Dataset ID (optional if the landing page has pixelId).
+- META_GRAPH_API_VERSION = optional Graph API version; defaults to v25.0.
+- META_TEST_EVENT_CODE = optional; set only while testing in Events Manager, then remove.
+
+Run migrations/0003_meta_capi.sql against the production D1 database.
+Browser Pixel and server CAPI Purchase share txnid as event ID for deduplication.
+CAPI errors are logged and do not interrupt payment confirmation or ebook delivery.
