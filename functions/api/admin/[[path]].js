@@ -41,6 +41,10 @@ export async function onRequest({request,env}){
     await env.EBOOKS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:file.type}});
     return json({ok:true,key,size:file.size});
   }
+  if(path==="orders"&&request.method==="GET"){
+    const rows=await env.ORDERS_DB.prepare(`SELECT txnid,customer_name,email,phone,amount,currency,status,created_at,paid_at,page_slug,product_name,bump FROM orders ORDER BY created_at DESC LIMIT 500`).all();
+    return json({orders:rows.results||[]});
+  }
   if(path==="pages"&&request.method==="GET"){
     const rows=await env.ORDERS_DB.prepare("SELECT id,slug,title,status,created_at,updated_at,published_at FROM landing_pages ORDER BY updated_at DESC").all();
     return json({pages:rows.results||[]});

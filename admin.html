@@ -8,7 +8,7 @@
 <div class="editor"><div>
 <div class="field"><label>Page / product name</label><input id="title"></div><div class="field"><label>URL slug</label><input id="slug" placeholder="my-new-ebook"></div>
 <div class="field"><label>Main product name</label><input id="productName"></div><div class="field"><label>Price (INR)</label><input id="price" type="number" min="1"></div>
-<div class="field"><label>Main PDF</label><input id="mainFile" type="file" accept="application/pdf"><button type="button" id="uploadMain">Upload main PDF</button><input id="mainKey" placeholder="Uploaded R2 object key"></div>
+<div class="field"><label>Main PDF</label><input id="mainFile" type="file" accept="application/pdf"><button type="button" id="uploadMain">Upload main PDF to secure storage</button><input id="mainKey" placeholder="Uploaded R2 object key" readonly></div>
 <hr><h3>Order bump</h3><label><input id="bumpEnabled" type="checkbox"> Enable optional add-on</label>
 <div class="field"><label>Add-on title</label><input id="bumpTitle"></div><div class="field"><label>Add-on price (INR)</label><input id="bumpPrice" type="number" min="0"></div><div class="field"><label>Add-on PDF</label><input id="bumpFile" type="file" accept="application/pdf"><button type="button" id="uploadBump">Upload add-on PDF</button><input id="bumpKey" placeholder="Uploaded R2 object key"></div>
 <hr><h3>Design</h3><div class="field"><label>Hero headline</label><textarea id="heroTitle"></textarea></div><div class="field"><label>Subheadline</label><textarea id="subtitle"></textarea></div><div class="field"><label>Accent color</label><input id="accent" type="color" value="#2563eb"></div>

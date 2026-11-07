@@ -15,11 +15,14 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   }
 });
 
-export async function onRequest({ params, env, request }) {
-
-  const pathname = new URL(request.url).pathname;
+export async function onRequest({ params, env, request, next }) {
 
   const slug = String(params.slug || '').toLowerCase();
+
+  // Admin HTML ko dynamic landing-page route se bypass karo
+  if (slug === 'admin.html') {
+    return next();
+  }
 
   if (!/^[a-z0-9-]{1,70}$/.test(slug)) {
     return new Response('Not found', { status: 404 });
