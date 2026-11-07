@@ -115,3 +115,58 @@ export async function sendMetaPurchase({ pixelId, accessToken, order, request, e
   }
   return result;
 }
+
+
+export async function sendMetaStandardEvent({ pixelId, accessToken, eventName, eventId, request, pageSlug, eventTime, testEventCode }) {
+  if (!pixelId || !accessToken) throw new Error('Meta CAPI credentials missing');
+  if (!['PageView', 'InitiateCheckout'].includes(eventName)) throw new Error('Unsupported Meta event');
+
+  const cookies = String(request.headers.get('cookie') || '');
+  const cookieValue = (name) => cookies.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))?.[1] || '';
+  const userData = {
+    client_ip_address: request.headers.get('CF-Connecting-IP') || undefined,
+    client_user_agent: request.headers.get('User-Agent') || undefined,
+    fbp: cookieValue('_fbp') || undefined,
+    fbc: cookieValue('_fbc') || undefined,
+  };
+  for (const key of Object.keys(userData)) {
+    if (userData[key] === undefined || userData[key] === '') delete userData[key];
+  }
+
+  const origin = new URL(request.url).origin;
+  const slug = String(pageSlug || '').trim();
+  let eventSourceUrl = slug ? `${origin}/${encodeURIComponent(slug)}` : `${origin}/`;
+  const referer = request.headers.get('Referer');
+  if (referer) {
+    try {
+      const parsedReferer = new URL(referer);
+      if (parsedReferer.origin === origin) eventSourceUrl = parsedReferer.href;
+    } catch {}
+  }
+  const payload = {
+    data: [{
+      event_name: eventName,
+      event_time: Number(eventTime) || Math.floor(Date.now() / 1000),
+      event_id: String(eventId),
+      action_source: 'website',
+      event_source_url: eventSourceUrl,
+      user_data: userData,
+      ...(eventName === 'InitiateCheckout' ? { custom_data: { currency: 'INR' } } : {}),
+    }],
+    ...(testEventCode ? { test_event_code: String(testEventCode) } : {}),
+  };
+
+  const version = String('v25.0');
+  const response = await fetch(`https://graph.facebook.com/${version}/${encodeURIComponent(pixelId)}/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...payload, access_token: accessToken }),
+  });
+  const responseText = await response.text();
+  let result;
+  try { result = JSON.parse(responseText); } catch { result = { raw: responseText.slice(0, 500) }; }
+  if (!response.ok || result.error || Number(result.events_received || 0) < 1) {
+    throw new Error(`Meta CAPI rejected ${eventName}: HTTP ${response.status} ${JSON.stringify(result).slice(0, 500)}`);
+  }
+  return result;
+}

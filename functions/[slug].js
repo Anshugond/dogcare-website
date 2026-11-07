@@ -111,7 +111,9 @@ export async function onRequest({ params, env, request, next }) {
         s.parentNode.insertBefore(t,s)
       }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
       fbq('init','${esc(c.pixelId)}');
-      fbq('track','PageView');
+      window.__metaPageViewEventId=(crypto.randomUUID?crypto.randomUUID():('pv_'+Date.now()+'_'+Math.random().toString(36).slice(2)));
+      fbq('track','PageView',{}, {eventID:window.__metaPageViewEventId});
+      fetch('/api/track-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_name:'PageView',event_id:window.__metaPageViewEventId,page_slug:'${esc(slug)}'})}).catch(function(){});
     </script>`
     : '';
 
@@ -226,11 +228,13 @@ if(bump){
 document.querySelectorAll('.btn').forEach(b=>{
   if(b.type!=='submit'){
     b.addEventListener('click',()=>{
-      if(window.fbq){
-        fbq('track','InitiateCheckout',{
-          value:amount(),
-          currency:'INR'
-        });
+      if(!window.__metaCheckoutEventSent){
+        window.__metaCheckoutEventSent=true;
+        const eventId=(crypto.randomUUID?crypto.randomUUID():('ic_'+Date.now()+'_'+Math.random().toString(36).slice(2)));
+        if(window.fbq){
+          fbq('track','InitiateCheckout',{value:amount(),currency:'INR'},{eventID:eventId});
+        }
+        fetch('/api/track-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_name:'InitiateCheckout',event_id:eventId,page_slug:PAGE})}).catch(()=>{});
       }
     });
   }

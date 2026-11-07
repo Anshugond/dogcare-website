@@ -296,7 +296,9 @@ n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)
 }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','1141078851790581');
-fbq('track','PageView');
+window.__metaPageViewEventId = (crypto.randomUUID ? crypto.randomUUID() : ('pv_'+Date.now()+'_'+Math.random().toString(36).slice(2)));
+fbq('track','PageView',{}, {eventID:window.__metaPageViewEventId});
+fetch('/api/track-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_name:'PageView',event_id:window.__metaPageViewEventId})}).catch(function(){});
 </script>
 <!-- End Meta Pixel Code -->
 </head>
@@ -460,10 +462,17 @@ function route(){
 bump.addEventListener('change',function(){calc();if(bump.checked&&window.fbq)fbq('track','AddToCart',{value:CFG.bump,currency:'INR',content_name:'60 Recipe Ebook Bump',content_type:'product',content_ids:['recipe-ebook-60'],num_items:1});});
 box.addEventListener('click',function(e){if(e.target.closest('.pick,details'))return;bump.checked=!bump.checked;bump.dispatchEvent(new Event('change'));});
 $('backBtn').onclick=function(){location.hash='';route();};
-// InitiateCheckout: fire on an actual Buy Ebook CTA click, not every route render.
+// InitiateCheckout: send Browser + Server events with the same event ID.
+var checkoutEventSent=false;
 document.addEventListener('click',function(e){
   var cta=e.target.closest('a[href="#checkout"]');
-  if(cta && window.fbq){fbq('track','InitiateCheckout',{value:total(),currency:'INR',content_name:'Complete Dog Care Ebook',content_type:'product',num_items:1});}
+  if(!cta || checkoutEventSent)return;
+  checkoutEventSent=true;
+  var eventId=(crypto.randomUUID ? crypto.randomUUID() : ('ic_'+Date.now()+'_'+Math.random().toString(36).slice(2)));
+  if(window.fbq){
+    fbq('track','InitiateCheckout',{value:total(),currency:'INR',content_name:'Complete Dog Care Ebook',content_type:'product',num_items:1},{eventID:eventId});
+  }
+  fetch('/api/track-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_name:'InitiateCheckout',event_id:eventId})}).catch(function(){});
 });
 window.addEventListener('hashchange',route);money();calc();route();
 

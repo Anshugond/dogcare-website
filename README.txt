@@ -124,3 +124,17 @@ Set these Cloudflare Pages secrets/variables:
 Run migrations/0003_meta_capi.sql against the production D1 database.
 Browser Pixel and server CAPI Purchase share txnid as event ID for deduplication.
 CAPI errors are logged and do not interrupt payment confirmation or ebook delivery.
+
+
+META CAPI - PAGEVIEW AND INITIATECHECKOUT
+-----------------------------------------
+Added server-side PageView and InitiateCheckout events via /api/track-event.
+The root Dog Care page and dynamic published landing pages send matching browser
+and server event IDs for Meta deduplication. Purchase CAPI remains unchanged.
+
+Before deploying this update, run migrations/0004_meta_standard_events.sql
+against the production D1 database. Existing Cloudflare secrets are reused:
+META_PIXEL_ID, META_CAPI_ACCESS_TOKEN, and optional META_TEST_EVENT_CODE.
+Server events are subject to applicable consent, privacy choices, browser/network
+restrictions, and Meta matching/attribution limitations. Browser Pixel cannot be
+forced to run when a visitor's blocker prevents it.
