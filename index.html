@@ -521,6 +521,15 @@ $('orderForm').addEventListener('submit',function(e){
 }
 @media (min-width:821px){body.ck #waSupport span{display:inline!important}}
 
+/* Mobile-only: keep WhatsApp clear of the fixed Pay button. */
+@media (max-width: 820px) {
+  body.ck #waSupport {
+    bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+    right: 12px !important;
+    z-index: 999 !important;
+  }
+}
+
 /* Mobile-only: hide checkout Back to Page link below the order summary */
 @media (max-width: 820px) {
   body.ck #checkout .ckl > .back,
